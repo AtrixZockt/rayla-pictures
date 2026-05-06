@@ -1,0 +1,26 @@
+﻿backend:
+  name: git-gateway
+  branch: main
+
+media_folder: public/images/uploads
+public_folder: /images/uploads
+
+collections:
+  - name: sets
+    label: Sets
+    label_singular: Set
+    folder: src/content/sets
+    create: true
+    slug: "{{slug}}"
+    extension: md
+    format: yaml-frontmatter
+    fields:
+      - { name: title, label: Title, widget: string }
+      - { name: year, label: Year, widget: number, value_type: int, min: 1900, max: 2100 }
+      - { name: cover, label: Cover, widget: image }
+      - name: images
+        label: Images
+        widget: list
+        field: { name: image, label: Image, widget: image }
+      - { name: order, label: Display order, widget: number, value_type: int, default: 0, required: false }
+      - { name: draft, label: Draft (hide from site), widget: boolean, default: false, required: false }
