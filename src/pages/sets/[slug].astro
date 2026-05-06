@@ -2,6 +2,7 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import Lightbox from '../../components/Lightbox.astro';
 import { getCollection } from 'astro:content';
+import OptimizedImage from '../../components/OptimizedImage.astro';
 
 export async function getStaticPaths() {
   const sets = await getCollection('sets', ({ data }) => !data.draft);
@@ -27,7 +28,7 @@ const otherSets = allSets
   <section class="image-stack">
     {set.data.images.map((src, idx) => (
       <button class="image-trigger" data-lightbox-trigger aria-label={`Open image ${idx + 1}`}>
-        <img src={src} alt={`${set.data.title} ${idx + 1}`} loading="lazy" />
+        <OptimizedImage src={src} alt={`${set.data.title} ${idx + 1}`} width={1600} />
       </button>
     ))}
   </section>
@@ -39,7 +40,7 @@ const otherSets = allSets
         {otherSets.map((s) => (
           <a href={`/sets/${s.id}`} class="related-card">
             <div class="cover-wrap">
-              <img src={s.data.cover} alt={s.data.title} loading="lazy" />
+              <OptimizedImage src={s.data.cover} alt={s.data.title} width={800} />
             </div>
             <div class="card-band">
               <div class="card-title">{s.data.title}</div>

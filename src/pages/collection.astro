@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import OptimizedImage from '../components/OptimizedImage.astro';
 import { getCollection } from 'astro:content';
 
 const allSets = await getCollection('sets', ({ data }) => !data.draft);
@@ -19,7 +20,7 @@ const sets = allSets.sort((a, b) => a.data.order - b.data.order);
     {sets.map((set) => (
       <a href={`/sets/${set.id}`} class="set-card">
         <div class="cover-wrap">
-          <img src={set.data.cover} alt={set.data.title} loading="lazy" />
+          <OptimizedImage src={set.data.cover} alt={set.data.title} width={800} />
         </div>
         <div class="card-band">
           <div class="card-title">{set.data.title}</div>

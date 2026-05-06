@@ -1,6 +1,7 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import siteData from '../data/site.json';
+import OptimizedImage from '../components/OptimizedImage.astro';
 ---
 
 <BaseLayout title="Rayla Seraphine">
@@ -21,7 +22,7 @@ import siteData from '../data/site.json';
       </div>
     </div>
     <div class="right">
-      <img src={siteData.hero_image} alt="" />
+      <OptimizedImage src={siteData.hero_image} alt="" width={1600} loading="eager" />
     </div>
   </div>
 </BaseLayout>

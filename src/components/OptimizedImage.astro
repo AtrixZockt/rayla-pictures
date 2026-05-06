@@ -1,0 +1,18 @@
+---
+interface Props {
+  src: string;
+  alt: string;
+  width?: number;
+  loading?: 'lazy' | 'eager';
+  class?: string;
+}
+
+const { src, alt, width = 1200, loading = 'lazy', class: className } = Astro.props;
+
+const isProd = import.meta.env.PROD;
+const optimizedSrc = isProd
+  ? `/.netlify/images?url=${encodeURIComponent(src)}&w=${width}&q=80`
+  : src;
+---
+
+<img src={optimizedSrc} alt={alt} loading={loading} class={className} />
