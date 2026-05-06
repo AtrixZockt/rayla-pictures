@@ -1,33 +1,27 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-
-const heroImage = '/images/hero.jpg';
-
-const changelog = [
-  { title: 'European Pictures', date: '31.08.2025' },
-  { title: 'South Africa', date: '22.11.2024' },
-];
+import siteData from '../data/site.json';
 ---
 
 <BaseLayout title="Rayla Seraphine">
   <div class="home">
     <div class="left">
       <div class="content">
-        <h1>Rayla Seraphine</h1>
+        <h1>Rayla Seraphine Dashyy</h1>
         <p class="muted">Hey there,</p>
         <p class="muted">my name is Rayla Seraphine and I'll just put some pictures on here.</p>
         <p class="muted">All self-made of course c:</p>
         <a href="/collection" class="cta-button">Pictures</a>
         <h2>Changelog:</h2>
         <ul class="changelog">
-          {changelog.map((item) => (
+          {siteData.changelog.map((item) => (
             <li>{item.title} - {item.date}</li>
           ))}
         </ul>
       </div>
     </div>
     <div class="right">
-      <img src={heroImage} alt="" />
+      <img src={siteData.hero_image} alt="" />
     </div>
   </div>
 </BaseLayout>

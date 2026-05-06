@@ -6,6 +6,26 @@ media_folder: public/images/uploads
 public_folder: /images/uploads
 
 collections:
+  - name: site
+    label: Site
+    delete: false
+    editor:
+      preview: false
+    files:
+      - file: src/data/site.json
+        name: settings
+        label: Settings
+        format: json
+        fields:
+          - { name: hero_image, label: Hero image, widget: image }
+          - name: changelog
+            label: Changelog
+            widget: list
+            label_singular: Entry
+            fields:
+              - { name: title, label: Title, widget: string }
+              - { name: date, label: Date, widget: string }
+
   - name: sets
     label: Sets
     label_singular: Set
