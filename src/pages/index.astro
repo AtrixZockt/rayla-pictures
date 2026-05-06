@@ -1,17 +1,124 @@
 ---
+import BaseLayout from '../layouts/BaseLayout.astro';
 
+const heroImage = '/images/hero.jpg';
+
+const changelog = [
+  { title: 'European Pictures', date: '31.08.2025' },
+  { title: 'South Africa', date: '22.11.2024' },
+];
 ---
 
-<html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<link rel="icon" href="/favicon.ico" />
-		<meta name="viewport" content="width=device-width" />
-		<meta name="generator" content={Astro.generator} />
-		<title>Astro</title>
-	</head>
-	<body>
-		<h1>Astro</h1>
-	</body>
-</html>
+<BaseLayout title="Rayla Seraphine">
+  <div class="home">
+    <div class="left">
+      <div class="content">
+        <h1>Rayla Seraphine</h1>
+        <p class="muted">Hey there,</p>
+        <p class="muted">my name is Rayla Seraphine and I'll just put some pictures on here.</p>
+        <p class="muted">All self-made of course c:</p>
+        <a href="/collection" class="cta-button">Pictures</a>
+        <h2>Changelog:</h2>
+        <ul class="changelog">
+          {changelog.map((item) => (
+            <li>{item.title} - {item.date}</li>
+          ))}
+        </ul>
+      </div>
+    </div>
+    <div class="right">
+      <img src={heroImage} alt="" />
+    </div>
+  </div>
+</BaseLayout>
+
+<style>
+  .home {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    min-height: calc(100vh - 64px);
+  }
+
+  .left {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-lg);
+  }
+
+  .content {
+    max-width: 480px;
+    text-align: center;
+  }
+
+  .content h1 {
+    font-size: clamp(36px, 4.5vw, 64px);
+    font-weight: 800;
+    letter-spacing: -1.5px;
+    line-height: 1.05;
+    margin-bottom: var(--space-md);
+    text-align: left;
+  }
+
+  .muted {
+    color: var(--text-muted);
+    font-size: 14px;
+    margin-top: var(--space-xs);
+  }
+
+  .cta-button {
+    display: inline-block;
+    background: #e5e0d5;
+    color: #000;
+    padding: 12px 32px;
+    border-radius: 999px;
+    font-size: 14px;
+    font-weight: 500;
+    margin: var(--space-lg) 0;
+    transition: background 0.15s ease;
+  }
+
+  .cta-button:hover {
+    background: #fff;
+  }
+
+  .content h2 {
+    font-size: 18px;
+    font-weight: 700;
+    margin-top: var(--space-md);
+    margin-bottom: var(--space-sm);
+  }
+
+  .changelog {
+    list-style: none;
+    padding: 0;
+  }
+
+  .changelog li {
+    color: var(--text-muted);
+    font-size: 13px;
+    margin-bottom: 6px;
+  }
+
+  .right {
+    overflow: hidden;
+    background: #000;
+  }
+
+  .right img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  @media (max-width: 720px) {
+    .home {
+      grid-template-columns: 1fr;
+    }
+    .right {
+      height: 50vh;
+      order: -1;
+    }
+  }
+</style>

@@ -1,0 +1,153 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Lightbox from '../../components/Lightbox.astro';
+import { getCollection } from 'astro:content';
+
+export async function getStaticPaths() {
+  const sets = await getCollection('sets', ({ data }) => !data.draft);
+  return sets.map((set) => ({
+    params: { slug: set.id },
+    props: { set, allSets: sets },
+  }));
+}
+
+const { set, allSets } = Astro.props;
+
+const otherSets = allSets
+  .filter((s) => s.id !== set.id)
+  .sort((a, b) => a.data.order - b.data.order)
+  .slice(0, 4);
+---
+
+<BaseLayout title={`Rayla Seraphine — ${set.data.title}`}>
+  <section class="set-header">
+    <h1>{set.data.title}</h1>
+  </section>
+
+  <section class="image-stack">
+    {set.data.images.map((src, idx) => (
+      <button class="image-trigger" data-lightbox-trigger aria-label={`Open image ${idx + 1}`}>
+        <img src={src} alt={`${set.data.title} ${idx + 1}`} loading="lazy" />
+      </button>
+    ))}
+  </section>
+
+  {otherSets.length > 0 && (
+    <section class="related">
+      <h2>You may also like</h2>
+      <div class="related-grid">
+        {otherSets.map((s) => (
+          <a href={`/sets/${s.id}`} class="related-card">
+            <div class="cover-wrap">
+              <img src={s.data.cover} alt={s.data.title} loading="lazy" />
+            </div>
+            <div class="card-band">
+              <div class="card-title">{s.data.title}</div>
+              <div class="card-year">{s.data.year}</div>
+            </div>
+          </a>
+        ))}
+      </div>
+    </section>
+  )}
+
+  <Lightbox images={set.data.images} />
+</BaseLayout>
+
+<style>
+  .set-header {
+    text-align: center;
+    padding: var(--space-2xl) var(--space-md) var(--space-lg);
+  }
+
+  .set-header h1 {
+    font-size: clamp(36px, 5vw, 56px);
+    font-weight: 800;
+    letter-spacing: -1px;
+  }
+
+  .image-stack {
+    max-width: var(--max-width);
+    margin: 0 auto;
+    padding: 0 var(--space-md);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+  }
+
+  .image-trigger {
+    background: transparent;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    display: block;
+    width: 100%;
+  }
+
+  .image-trigger img {
+    width: 100%;
+    height: auto;
+    display: block;
+    transition: opacity 0.2s ease;
+  }
+
+  .image-trigger:hover img {
+    opacity: 0.92;
+  }
+
+  .related {
+    max-width: var(--max-width);
+    margin: var(--space-2xl) auto 0;
+    padding: 0 var(--space-md) var(--space-2xl);
+  }
+
+  .related h2 {
+    font-size: 20px;
+    font-weight: 600;
+    text-align: center;
+    margin-bottom: var(--space-lg);
+  }
+
+  .related-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-md);
+  }
+
+  .related-card {
+    display: block;
+    transition: transform 0.2s ease;
+  }
+
+  .related-card:hover {
+    transform: translateY(-2px);
+  }
+
+  .cover-wrap {
+    aspect-ratio: 4 / 3;
+    overflow: hidden;
+    background: #000;
+  }
+
+  .cover-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .card-band {
+    background: var(--bg-card-band);
+    padding: var(--space-md);
+    text-align: center;
+  }
+
+  .card-title {
+    font-size: 16px;
+  }
+
+  .card-year {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+</style>

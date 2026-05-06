@@ -1,0 +1,113 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { getCollection } from 'astro:content';
+
+const allSets = await getCollection('sets', ({ data }) => !data.draft);
+const sets = allSets.sort((a, b) => a.data.order - b.data.order);
+---
+
+<BaseLayout title="Rayla Seraphine — Collection">
+  <section class="hero">
+    <h1>Hi, I'm Rayla Seraphine!</h1>
+    <p class="subtitle">Scroll down to see more</p>
+    <svg class="chevron" width="48" height="20" viewBox="0 0 48 20" fill="none">
+      <path d="M2 2L24 18L46 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+    </svg>
+  </section>
+
+  <section class="sets-grid">
+    {sets.map((set) => (
+      <a href={`/sets/${set.id}`} class="set-card">
+        <div class="cover-wrap">
+          <img src={set.data.cover} alt={set.data.title} loading="lazy" />
+        </div>
+        <div class="card-band">
+          <div class="card-title">{set.data.title}</div>
+          <div class="card-year">{set.data.year}</div>
+        </div>
+      </a>
+    ))}
+  </section>
+</BaseLayout>
+
+<style>
+  .hero {
+    min-height: calc(100vh - 64px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: var(--space-md);
+  }
+
+  .hero h1 {
+    font-size: clamp(40px, 6vw, 80px);
+    font-weight: 800;
+    letter-spacing: -2px;
+    margin-bottom: var(--space-sm);
+    line-height: 1.05;
+  }
+
+  .subtitle {
+    font-size: 18px;
+    color: var(--text-muted);
+    margin-bottom: var(--space-2xl);
+  }
+
+  .chevron {
+    color: var(--text-muted);
+  }
+
+  .sets-grid {
+    max-width: var(--max-width);
+    margin: 0 auto;
+    padding: 0 var(--space-md) var(--space-2xl);
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-md);
+  }
+
+  .set-card {
+    display: block;
+    transition: transform 0.2s ease;
+  }
+
+  .set-card:hover {
+    transform: translateY(-2px);
+  }
+
+  .cover-wrap {
+    aspect-ratio: 4 / 3;
+    overflow: hidden;
+    background: #000;
+  }
+
+  .cover-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .card-band {
+    background: var(--bg-card-band);
+    padding: var(--space-md);
+    text-align: center;
+  }
+
+  .card-title {
+    font-size: 16px;
+  }
+
+  .card-year {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+
+  @media (max-width: 720px) {
+    .sets-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
