@@ -2,6 +2,8 @@
   name: git-gateway
   branch: main
 
+logo_url: https://rayla-pictures.netlify.app/favicon.svg
+
 media_folder: public/images/uploads
 public_folder: /images/uploads
 
@@ -17,14 +19,18 @@ collections:
         label: Settings
         format: json
         fields:
-          - { name: hero_image, label: Hero image, widget: image }
+          - name: hero_image
+            label: Hero image
+            widget: image
+            hint: "The big photo on the right side of the home page. You can swap this any time."
           - name: changelog
             label: Changelog
             widget: list
             label_singular: Entry
+            hint: "Recent updates shown at the bottom of the home page."
             fields:
-              - { name: title, label: Title, widget: string }
-              - { name: date, label: Date, widget: string }
+              - { name: title, label: Title, widget: string, hint: "What was added (e.g. 'European Pictures')" }
+              - { name: date, label: Date, widget: string, hint: "Format: DD.MM.YYYY" }
 
   - name: sets
     label: Sets
@@ -34,13 +40,46 @@ collections:
     slug: "{{slug}}"
     extension: md
     format: yaml-frontmatter
+    summary: "{{title}} — {{year}}"
+    sortable_fields: [title, year, order]
+    view_filters:
+      - label: Published
+        field: draft
+        pattern: false
+      - label: Drafts
+        field: draft
+        pattern: true
     fields:
-      - { name: title, label: Title, widget: string }
-      - { name: year, label: Year, widget: number, value_type: int, min: 1900, max: 2100 }
-      - { name: cover, label: Cover, widget: image }
+      - name: title
+        label: Title
+        widget: string
+        hint: "Name of the set, e.g. 'European Pictures'"
+      - name: year
+        label: Year
+        widget: number
+        value_type: int
+        min: 1900
+        max: 2100
+        hint: "Year the photos were taken"
+      - name: cover
+        label: Cover
+        widget: image
+        hint: "Thumbnail shown on the Collection page"
       - name: images
         label: Images
         widget: list
         field: { name: image, label: Image, widget: image }
-      - { name: order, label: Display order, widget: number, value_type: int, default: 0, required: false }
-      - { name: draft, label: Draft (hide from site), widget: boolean, default: false, required: false }
+        hint: "All photos in this set. Drag to reorder. Order here = order on the set page."
+      - name: order
+        label: Display order
+        widget: number
+        value_type: int
+        default: 0
+        required: false
+        hint: "Lower number = shown first on the Collection page. Use this to feature a set."
+      - name: draft
+        label: Hide from site
+        widget: boolean
+        default: false
+        required: false
+        hint: "Enable to keep this set hidden — useful while still working on it."
