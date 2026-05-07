@@ -7,6 +7,8 @@ const { images } = Astro.props;
 ---
 
 <div class="lightbox" id="lightbox" aria-hidden="true">
+  <div class="lb-progress" id="lb-progress"></div>
+
   <button class="lb-close" id="lb-close" aria-label="Close">
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
       <path d="M6 6L18 18M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
@@ -27,7 +29,30 @@ const { images } = Astro.props;
 
   <img class="lb-image" id="lb-image" alt="" />
 
-  <div class="lb-counter" id="lb-counter"></div>
+  <div class="lb-bottom">
+    <button class="lb-action" id="lb-slideshow" aria-label="Toggle slideshow">
+      <svg class="play-icon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M8 5v14l11-7z"/>
+      </svg>
+      <svg class="pause-icon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="display: none;">
+        <path d="M6 5h4v14H6zM14 5h4v14h-4z"/>
+      </svg>
+    </button>
+
+    <div class="lb-counter" id="lb-counter"></div>
+
+    <button class="lb-action" id="lb-share" aria-label="Share this image">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="18" cy="5" r="3"/>
+        <circle cx="6" cy="12" r="3"/>
+        <circle cx="18" cy="19" r="3"/>
+        <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+        <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+      </svg>
+    </button>
+  </div>
+
+  <div class="lb-toast" id="lb-toast"></div>
 </div>
 
 <script define:vars={{ images }}>
@@ -37,30 +62,121 @@ const { images } = Astro.props;
   const lbClose = document.getElementById('lb-close');
   const lbPrev = document.getElementById('lb-prev');
   const lbNext = document.getElementById('lb-next');
+  const lbSlideshow = document.getElementById('lb-slideshow');
+  const lbShare = document.getElementById('lb-share');
+  const lbToast = document.getElementById('lb-toast');
+  const lbProgress = document.getElementById('lb-progress');
+  const playIcon = lbSlideshow.querySelector('.play-icon');
+  const pauseIcon = lbSlideshow.querySelector('.pause-icon');
 
+  const SLIDESHOW_INTERVAL = 8000;
   let currentIndex = 0;
+  let slideshowTimer = null;
+  let isPlaying = false;
+  let toastTimer = null;
 
-  function show(index) {
+  function setImageWithFade(src) {
+    lbImage.style.opacity = '0';
+
+    setTimeout(() => {
+      let shown = false;
+      const showImage = () => {
+        if (shown) return;
+        shown = true;
+        lbImage.style.opacity = '1';
+      };
+
+      lbImage.onload = showImage;
+      lbImage.src = src;
+      if (lbImage.complete) showImage();
+    }, 250);
+  }
+
+  function show(index, updateHash = true) {
     currentIndex = index;
-    lbImage.src = images[index];
+    setImageWithFade(images[index]);
     lbCounter.textContent = (index + 1) + ' / ' + images.length;
     lightbox.classList.add('active');
     lightbox.setAttribute('aria-hidden', 'false');
     document.body.style.overflow = 'hidden';
+    if (updateHash) {
+      history.replaceState(null, '', '#image=' + (index + 1));
+    }
+    if (isPlaying) startProgress();
+    else stopProgress();
   }
 
   function close() {
+    stopSlideshow();
     lightbox.classList.remove('active');
     lightbox.setAttribute('aria-hidden', 'true');
     document.body.style.overflow = '';
+    history.replaceState(null, '', window.location.pathname);
   }
 
-  function next() {
+  function next(fromUser = true) {
+    if (fromUser) stopSlideshow();
     show((currentIndex + 1) % images.length);
   }
 
   function prev() {
+    stopSlideshow();
     show((currentIndex - 1 + images.length) % images.length);
+  }
+
+  function startSlideshow() {
+    isPlaying = true;
+    playIcon.style.display = 'none';
+    pauseIcon.style.display = '';
+    startProgress();
+    slideshowTimer = setInterval(() => next(false), SLIDESHOW_INTERVAL);
+  }
+
+  function stopSlideshow() {
+    if (slideshowTimer) {
+      clearInterval(slideshowTimer);
+      slideshowTimer = null;
+    }
+    isPlaying = false;
+    playIcon.style.display = '';
+    pauseIcon.style.display = 'none';
+    stopProgress();
+  }
+
+  function toggleSlideshow() {
+    if (isPlaying) stopSlideshow();
+    else startSlideshow();
+  }
+
+  function startProgress() {
+    lbProgress.classList.remove('running');
+    void lbProgress.offsetWidth;
+    lbProgress.classList.add('running');
+  }
+
+  function stopProgress() {
+    lbProgress.classList.remove('running');
+  }
+
+  function showToast(text) {
+    lbToast.textContent = text;
+    lbToast.classList.add('visible');
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => lbToast.classList.remove('visible'), 1800);
+  }
+
+  async function shareCurrentImage() {
+    const url = window.location.href;
+    if (navigator.share) {
+      try { await navigator.share({ url }); } catch {}
+    } else {
+      try {
+        await navigator.clipboard.writeText(url);
+        showToast('Link copied');
+      } catch {
+        showToast('Copy failed');
+      }
+    }
   }
 
   document.querySelectorAll('[data-lightbox-trigger]').forEach((el, idx) => {
@@ -72,7 +188,9 @@ const { images } = Astro.props;
 
   lbClose.addEventListener('click', close);
   lbPrev.addEventListener('click', prev);
-  lbNext.addEventListener('click', next);
+  lbNext.addEventListener('click', () => next(true));
+  lbSlideshow.addEventListener('click', toggleSlideshow);
+  lbShare.addEventListener('click', shareCurrentImage);
 
   lightbox.addEventListener('click', (e) => {
     if (e.target === lightbox) close();
@@ -82,8 +200,24 @@ const { images } = Astro.props;
     if (!lightbox.classList.contains('active')) return;
     if (e.key === 'Escape') close();
     if (e.key === 'ArrowLeft') prev();
-    if (e.key === 'ArrowRight') next();
+    if (e.key === 'ArrowRight') next(true);
+    if (e.key === ' ') {
+      e.preventDefault();
+      toggleSlideshow();
+    }
   });
+
+  function checkInitialHash() {
+    const match = window.location.hash.match(/^#image=(\d+)$/);
+    if (match) {
+      const n = parseInt(match[1], 10);
+      if (n >= 1 && n <= images.length) {
+        show(n - 1, false);
+      }
+    }
+  }
+
+  checkInitialHash();
 </script>
 
 <style>
@@ -101,15 +235,38 @@ const { images } = Astro.props;
     display: flex;
   }
 
+  .lb-progress {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: rgba(255, 255, 255, 0.7);
+    transform-origin: left;
+    transform: scaleX(0);
+    pointer-events: none;
+  }
+
+  .lb-progress.running {
+    animation: lb-progress-fill 8000ms linear forwards;
+  }
+
+  @keyframes lb-progress-fill {
+    from { transform: scaleX(0); }
+    to { transform: scaleX(1); }
+  }
+
   .lb-image {
     max-width: 90vw;
-    max-height: 90vh;
+    max-height: 82vh;
     object-fit: contain;
+    opacity: 1;
+    transition: opacity 0.25s ease;
   }
 
   .lb-close,
-  .lb-nav {
-    position: absolute;
+  .lb-nav,
+  .lb-action {
     background: transparent;
     border: none;
     color: var(--text);
@@ -117,37 +274,67 @@ const { images } = Astro.props;
     transition: opacity 0.15s ease;
     padding: 12px;
     cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
 
   .lb-close:hover,
-  .lb-nav:hover {
+  .lb-nav:hover,
+  .lb-action:hover {
     opacity: 1;
   }
 
   .lb-close {
+    position: absolute;
     top: 16px;
     right: 16px;
   }
 
-  .lb-prev {
-    left: 16px;
-    top: 50%;
-    transform: translateY(-50%);
-  }
-
+  .lb-prev,
   .lb-next {
-    right: 16px;
+    position: absolute;
     top: 50%;
     transform: translateY(-50%);
   }
 
-  .lb-counter {
+  .lb-prev { left: 16px; }
+  .lb-next { right: 16px; }
+
+  .lb-bottom {
     position: absolute;
     bottom: 24px;
     left: 50%;
     transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .lb-counter {
     color: var(--text);
     opacity: 0.7;
     font-size: 14px;
+    min-width: 60px;
+    text-align: center;
+  }
+
+  .lb-toast {
+    position: absolute;
+    bottom: 88px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text);
+    padding: 8px 16px;
+    border-radius: 999px;
+    font-size: 13px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+  }
+
+  .lb-toast.visible {
+    opacity: 1;
   }
 </style>

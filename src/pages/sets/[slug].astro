@@ -22,14 +22,27 @@ const otherSets = allSets
 
 <BaseLayout title={`Rayla Seraphine — ${set.data.title}`}>
   <section class="set-header">
-    <h1>{set.data.title}</h1>
-  </section>
+  <h1>{set.data.title}</h1>
+  <button id="share-btn" class="share-btn" aria-label="Share this set">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="18" cy="5" r="3"/>
+      <circle cx="6" cy="12" r="3"/>
+      <circle cx="18" cy="19" r="3"/>
+      <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+      <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+    </svg>
+    <span id="share-label">Share</span>
+  </button>
+</section>
 
   <section class="image-stack">
     {set.data.images.map((src, idx) => (
-      <button class="image-trigger" data-lightbox-trigger aria-label={`Open image ${idx + 1}`}>
-        <OptimizedImage src={src} alt={`${set.data.title} ${idx + 1}`} width={1600} />
-      </button>
+      <div class="image-block">
+        <button class="image-trigger" data-lightbox-trigger aria-label={`Open image ${idx + 1}`}>
+          <OptimizedImage src={src} alt={`${set.data.title} ${idx + 1}`} width={1600} />
+        </button>
+        <div class="image-meta" data-exif-src={src}></div>
+      </div>
     ))}
   </section>
 
@@ -45,6 +58,7 @@ const otherSets = allSets
             <div class="card-band">
               <div class="card-title">{s.data.title}</div>
               <div class="card-year">{s.data.year}</div>
+              <div class="card-count">{s.data.images.length} {s.data.images.length === 1 ? 'photo' : 'photos'}</div>
             </div>
           </a>
         ))}
@@ -128,12 +142,29 @@ const otherSets = allSets
     aspect-ratio: 4 / 3;
     overflow: hidden;
     background: #000;
+    position: relative;
   }
 
-  .cover-wrap img {
+  .cover-wrap::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, #161616 0%, #2a2a2a 50%, #161616 100%);
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 1.5s infinite;
+  }
+
+  .cover-wrap :global(img) {
+    position: relative;
+    z-index: 1;
     width: 100%;
     height: 100%;
     object-fit: cover;
+  }
+
+  @keyframes skeleton-shimmer {
+    0% { background-position: 100% 0; }
+    100% { background-position: -100% 0; }
   }
 
   .card-band {
@@ -151,4 +182,160 @@ const otherSets = allSets
     color: var(--text-muted);
     margin-top: 4px;
   }
+
+  .card-count {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 4px;
+    opacity: 0.6;
+  }
+
+  .share-btn {
+    margin-top: 24px;
+    background: transparent;
+    border: 1px solid #444;
+    color: var(--text);
+    padding: 8px 16px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-family: inherit;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease;
+  }
+
+  .share-btn:hover {
+    border-color: #888;
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  .image-block {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .image-meta {
+    text-align: center;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    min-height: 32px;
+  }
+
+  .image-meta.visible {
+    opacity: 0.65;
+  }
+
+  .meta-line {
+    font-size: 12px;
+    color: var(--text-muted);
+    letter-spacing: 0.3px;
+    line-height: 1.5;
+  }
+
+  .meta-gear {
+    font-weight: 500;
+  }
 </style>
+
+<script define:vars={{ title: set.data.title }}>
+  const btn = document.getElementById('share-btn');
+  const label = document.getElementById('share-label');
+  if (btn) {
+    btn.addEventListener('click', async () => {
+      const url = window.location.href;
+      if (navigator.share) {
+        try { await navigator.share({ title, url }); } catch {}
+      } else {
+        try {
+          await navigator.clipboard.writeText(url);
+          label.textContent = 'Copied!';
+          setTimeout(() => { label.textContent = 'Share'; }, 2000);
+        } catch {
+          label.textContent = 'Copy failed';
+          setTimeout(() => { label.textContent = 'Share'; }, 2000);
+        }
+      }
+    });
+  }
+</script>
+
+<script>
+  import('https://cdn.jsdelivr.net/npm/exifr@7/dist/lite.esm.mjs')
+    .then(({ default: exifr }) => {
+      function formatExposure(t) {
+        if (!t) return null;
+        if (t >= 1) return `${t}s`;
+        return `1/${Math.round(1 / t)}s`;
+      }
+
+      function formatDate(d) {
+        if (!d) return null;
+        try {
+          return new Date(d).toLocaleDateString('en-US', {
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric',
+          });
+        } catch {
+          return null;
+        }
+      }
+
+      function render(el, meta) {
+        const gearParts = [];
+        if (meta.Make && meta.Model) {
+          const model = meta.Model.startsWith(meta.Make) ? meta.Model : `${meta.Make} ${meta.Model}`;
+          gearParts.push(model);
+        } else if (meta.Model) {
+          gearParts.push(meta.Model);
+        }
+        if (meta.LensModel) gearParts.push(meta.LensModel);
+
+        const settingsParts = [];
+        if (meta.FNumber) settingsParts.push(`f/${meta.FNumber}`);
+        const exp = formatExposure(meta.ExposureTime);
+        if (exp) settingsParts.push(exp);
+        if (meta.ISO) settingsParts.push(`ISO ${meta.ISO}`);
+        if (meta.FocalLength) settingsParts.push(`${Math.round(meta.FocalLength)}mm`);
+        const date = formatDate(meta.DateTimeOriginal);
+        if (date) settingsParts.push(date);
+
+        const html = [];
+        if (gearParts.length) html.push(`<div class="meta-line meta-gear">${gearParts.join(' · ')}</div>`);
+        if (settingsParts.length) html.push(`<div class="meta-line">${settingsParts.join(' · ')}</div>`);
+
+        if (html.length) {
+          el.innerHTML = html.join('');
+          el.classList.add('visible');
+        }
+      }
+
+      async function loadExif(el) {
+        const src = el.dataset.exifSrc;
+        try {
+          const meta = await exifr.parse(src);
+          if (meta) render(el, meta);
+        } catch {
+          // No EXIF or unreadable — just skip
+        }
+      }
+
+      const observer = new IntersectionObserver(
+        (entries) => {
+          for (const entry of entries) {
+            if (entry.isIntersecting) {
+              observer.unobserve(entry.target);
+              loadExif(entry.target);
+            }
+          }
+        },
+        { rootMargin: '200px' }
+      );
+
+      document.querySelectorAll('[data-exif-src]').forEach((el) => observer.observe(el));
+    })
+    .catch((e) => console.warn('EXIF library failed to load', e));
+</script>
