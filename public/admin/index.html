@@ -5,198 +5,108 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Rayla Seraphine — Admin</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <style>
-      /* === Base — override Decap CMS light theme === */
-      html, body, #nc-root {
-        background: #1a1a1a !important;
-        color: #f0f0f0 !important;
-      }
-
-      body, body * {
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif !important;
-      }
-
-      /* === App chrome (header, sidebar, main area) === */
-      [class*="AppHeader"],
-      [class*="Header-"] {
-        background: #232323 !important;
-        border-bottom: 1px solid #2e2e2e !important;
-        box-shadow: none !important;
-      }
-
-      [class*="AppHeader"] *,
-      [class*="Header-"] * {
-        color: #f0f0f0 !important;
-      }
-
-      /* === Collection list / entry cards === */
-      [class*="ListCard"],
-      [class*="EntryCard"],
-      [class*="Card-"] {
-        background: #222 !important;
-        border: 1px solid #2e2e2e !important;
-        color: #f0f0f0 !important;
-        border-radius: 8px !important;
-        transition: border-color 0.15s ease, transform 0.15s ease !important;
-      }
-
-      [class*="ListCard"]:hover,
-      [class*="EntryCard"]:hover,
-      [class*="Card-"]:hover {
-        border-color: #444 !important;
-        transform: translateY(-1px) !important;
-      }
-
-      [class*="ListCard"] *,
-      [class*="EntryCard"] *,
-      [class*="Card-"] * {
-        color: inherit !important;
-      }
-
-      /* === Sidebar / collection nav === */
-      [class*="SidebarNavList"],
-      [class*="Sidebar"] {
-        background: #1c1c1c !important;
-        border-color: #2e2e2e !important;
-      }
-
-      [class*="SidebarNavLink"] {
-        color: #aaa !important;
-      }
-
-      [class*="SidebarNavLink"][class*="active"],
-      [class*="SidebarNavLink"]:hover {
-        color: #fff !important;
-        background: #2a2a2a !important;
-      }
-
-      /* === Inputs === */
-      input[type="text"],
-      input[type="email"],
-      input[type="number"],
-      input[type="search"],
-      input[type="url"],
-      textarea,
-      select {
-        background: #2a2a2a !important;
-        color: #f0f0f0 !important;
-        border: 1px solid #3a3a3a !important;
-        border-radius: 6px !important;
-      }
-
-      input:focus,
-      textarea:focus,
-      select:focus {
-        border-color: #666 !important;
-        outline: none !important;
-        box-shadow: 0 0 0 2px rgba(255,255,255,0.05) !important;
-      }
-
-      ::placeholder {
-        color: #666 !important;
-      }
-
-      /* === Labels & hints === */
-      label,
-      [class*="Label-"],
-      [class*="FieldLabel"] {
-        color: #aaa !important;
-        font-weight: 500 !important;
-      }
-
-      [class*="Hint"],
-      small {
-        color: #888 !important;
-      }
-
-      /* === Buttons === */
-      button[type="submit"],
-      [class*="PublishButton"],
-      [class*="SaveButton"] {
-        background: #ffffff !important;
-        color: #000 !important;
-        border: none !important;
-        font-weight: 500 !important;
-      }
-
-      button[type="submit"]:hover,
-      [class*="PublishButton"]:hover {
-        background: #e5e0d5 !important;
-      }
-
-      [class*="SecondaryButton"],
-      button[class*="ghost"] {
-        background: transparent !important;
-        color: #f0f0f0 !important;
-        border: 1px solid #444 !important;
-      }
-
-      /* === Editor preview pane === */
-      [class*="PreviewPane"],
-      [class*="Preview-"] {
-        background: #1a1a1a !important;
-        color: #f0f0f0 !important;
-        border-left: 1px solid #2e2e2e !important;
-      }
-
-      [class*="PreviewPane"] *,
-      [class*="Preview-"] * {
-        color: inherit !important;
-      }
-
-      /* === Modals & dropdowns === */
-      [class*="Modal"],
-      [class*="Dropdown"],
-      [class*="Menu"] {
-        background: #232323 !important;
-        border: 1px solid #2e2e2e !important;
-        color: #f0f0f0 !important;
-      }
-
-      /* === Image upload areas === */
-      [class*="ImageWrapper"],
-      [class*="ImageUploadButton"] {
-        background: #2a2a2a !important;
-        border: 1px dashed #444 !important;
-      }
-
-      /* === Login screen polish === */
-      [class*="AuthenticationPage"] {
-        background: #1a1a1a !important;
-      }
-
-      [class*="AuthenticationPage"] [class*="Card"] {
-        background: #232323 !important;
-        border: 1px solid #2e2e2e !important;
-      }
-
-      /* === Tooltips & validation messages === */
-      [class*="ValidationErrorTypes"] {
-        color: #ff6b6b !important;
-      }
-
-      /* === Scrollbars === */
-      ::-webkit-scrollbar {
-        width: 10px;
-        height: 10px;
-      }
-
-      ::-webkit-scrollbar-track {
-        background: #1a1a1a;
-      }
-
-      ::-webkit-scrollbar-thumb {
-        background: #333;
-        border-radius: 5px;
-      }
-
-      ::-webkit-scrollbar-thumb:hover {
-        background: #444;
-      }
-    </style>
   </head>
   <body>
     <script src="/netlify-identity-widget.js"></script>
     <script src="https://unpkg.com/decap-cms@^3.0.0/dist/decap-cms.js"></script>
+    <script>
+      // Custom preview that mimics the actual set page on the live site
+      var SetPreview = createClass({
+        render: function () {
+          var entry = this.props.entry;
+          var getAsset = this.props.getAsset;
+
+          var title = entry.getIn(['data', 'title']) || 'Untitled';
+          var year = entry.getIn(['data', 'year']);
+          var cover = entry.getIn(['data', 'cover']);
+          var images = entry.getIn(['data', 'images']);
+          var imagesArray = images ? images.toJS() : [];
+
+          var coverAsset = cover ? getAsset(cover) : null;
+
+          return h('div', { className: 'set-preview' },
+            h('h1', { className: 'set-title' }, title),
+            year ? h('div', { className: 'set-year' }, String(year)) : null,
+            coverAsset ? h('img', {
+              className: 'set-cover',
+              src: coverAsset.toString(),
+              alt: 'Cover'
+            }) : null,
+            imagesArray.length > 0
+              ? h('div', { className: 'images-stack' },
+                  imagesArray.map(function (img, i) {
+                    // Handle both flat-string and wrapped-object list shapes
+                    var path = typeof img === 'string' ? img : (img && img.image ? img.image : '');
+                    var asset = path ? getAsset(path) : null;
+                    return h('img', {
+                      key: i,
+                      className: 'set-image',
+                      src: asset ? asset.toString() : '',
+                      alt: 'Image ' + (i + 1)
+                    });
+                  })
+                )
+              : null
+          );
+        }
+      });
+
+      CMS.registerPreviewTemplate('sets', SetPreview);
+
+      CMS.registerPreviewStyle(`
+        body {
+          background: #1a1a1a;
+          color: #f0f0f0;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, sans-serif;
+          margin: 0;
+          padding: 0;
+        }
+
+        .set-preview {
+          max-width: 720px;
+          margin: 0 auto;
+          padding: 48px 24px;
+        }
+
+        .set-title {
+          font-size: 40px;
+          font-weight: 800;
+          text-align: center;
+          margin: 0 0 8px;
+          letter-spacing: -1px;
+          line-height: 1.05;
+          color: #f0f0f0;
+        }
+
+        .set-year {
+          text-align: center;
+          color: #888;
+          font-size: 14px;
+          margin-bottom: 40px;
+        }
+
+        .set-cover {
+          width: 100%;
+          aspect-ratio: 4 / 3;
+          object-fit: cover;
+          margin-bottom: 32px;
+          display: block;
+          background: #000;
+        }
+
+        .images-stack {
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+        }
+
+        .set-image {
+          width: 100%;
+          height: auto;
+          display: block;
+          background: #000;
+        }
+      `, { raw: true });
+    </script>
   </body>
 </html>
