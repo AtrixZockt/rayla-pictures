@@ -20,7 +20,11 @@ const otherSets = allSets
   .slice(0, 4);
 ---
 
-<BaseLayout title={`Rayla Seraphine — ${set.data.title}`}>
+<BaseLayout
+  title={`Rayla Seraphine — ${set.data.title}`}
+  description={`${set.data.title} — photographs by Rayla Seraphine, ${set.data.year}`}
+  image={set.data.cover}
+>
   <section class="set-header">
   <h1>{set.data.title}</h1>
   <button id="share-btn" class="share-btn" aria-label="Share this set">
@@ -240,12 +244,15 @@ const otherSets = allSets
   }
 </style>
 
-<script define:vars={{ title: set.data.title }}>
-  const btn = document.getElementById('share-btn');
-  const label = document.getElementById('share-label');
-  if (btn) {
+<script>
+  document.addEventListener('astro:page-load', () => {
+    const btn = document.getElementById('share-btn');
+    const label = document.getElementById('share-label');
+    if (!btn || !label) return;
+
     btn.addEventListener('click', async () => {
       const url = window.location.href;
+      const title = document.title;
       if (navigator.share) {
         try { await navigator.share({ title, url }); } catch {}
       } else {
@@ -259,83 +266,90 @@ const otherSets = allSets
         }
       }
     });
-  }
+  });
 </script>
 
 <script>
-  import('https://cdn.jsdelivr.net/npm/exifr@7/dist/lite.esm.mjs')
-    .then(({ default: exifr }) => {
-      function formatExposure(t) {
-        if (!t) return null;
-        if (t >= 1) return `${t}s`;
-        return `1/${Math.round(1 / t)}s`;
-      }
+  document.addEventListener('astro:page-load', () => {
+    const blocks = document.querySelectorAll('[data-exif-src]');
+    if (blocks.length === 0) return;
 
-      function formatDate(d) {
-        if (!d) return null;
-        try {
-          return new Date(d).toLocaleDateString('en-US', {
-            day: 'numeric',
-            month: 'short',
-            year: 'numeric',
-          });
-        } catch {
-          return null;
+    import('https://cdn.jsdelivr.net/npm/exifr@7/dist/lite.esm.mjs')
+      .then(({ default: exifr }) => {
+        function formatExposure(t) {
+          if (!t) return null;
+          if (t >= 1) return `${t}s`;
+          return `1/${Math.round(1 / t)}s`;
         }
-      }
 
-      function render(el, meta) {
-        const gearParts = [];
-        if (meta.Make && meta.Model) {
-          const model = meta.Model.startsWith(meta.Make) ? meta.Model : `${meta.Make} ${meta.Model}`;
-          gearParts.push(model);
-        } else if (meta.Model) {
-          gearParts.push(meta.Model);
-        }
-        if (meta.LensModel) gearParts.push(meta.LensModel);
-
-        const settingsParts = [];
-        if (meta.FNumber) settingsParts.push(`f/${meta.FNumber}`);
-        const exp = formatExposure(meta.ExposureTime);
-        if (exp) settingsParts.push(exp);
-        if (meta.ISO) settingsParts.push(`ISO ${meta.ISO}`);
-        if (meta.FocalLength) settingsParts.push(`${Math.round(meta.FocalLength)}mm`);
-        const date = formatDate(meta.DateTimeOriginal);
-        if (date) settingsParts.push(date);
-
-        const html = [];
-        if (gearParts.length) html.push(`<div class="meta-line meta-gear">${gearParts.join(' · ')}</div>`);
-        if (settingsParts.length) html.push(`<div class="meta-line">${settingsParts.join(' · ')}</div>`);
-
-        if (html.length) {
-          el.innerHTML = html.join('');
-          el.classList.add('visible');
-        }
-      }
-
-      async function loadExif(el) {
-        const src = el.dataset.exifSrc;
-        try {
-          const meta = await exifr.parse(src);
-          if (meta) render(el, meta);
-        } catch {
-          // No EXIF or unreadable — just skip
-        }
-      }
-
-      const observer = new IntersectionObserver(
-        (entries) => {
-          for (const entry of entries) {
-            if (entry.isIntersecting) {
-              observer.unobserve(entry.target);
-              loadExif(entry.target);
-            }
+        function formatDate(d) {
+          if (!d) return null;
+          try {
+            return new Date(d).toLocaleDateString('en-US', {
+              day: 'numeric',
+              month: 'short',
+              year: 'numeric',
+            });
+          } catch {
+            return null;
           }
-        },
-        { rootMargin: '200px' }
-      );
+        }
 
-      document.querySelectorAll('[data-exif-src]').forEach((el) => observer.observe(el));
-    })
-    .catch((e) => console.warn('EXIF library failed to load', e));
+        function render(el, meta) {
+          const gearParts = [];
+          if (meta.Make && meta.Model) {
+            const model = meta.Model.startsWith(meta.Make) ? meta.Model : `${meta.Make} ${meta.Model}`;
+            gearParts.push(model);
+          } else if (meta.Model) {
+            gearParts.push(meta.Model);
+          }
+          if (meta.LensModel) gearParts.push(meta.LensModel);
+
+          const settingsParts = [];
+          if (meta.FNumber) settingsParts.push(`f/${meta.FNumber}`);
+          const exp = formatExposure(meta.ExposureTime);
+          if (exp) settingsParts.push(exp);
+          if (meta.ISO) settingsParts.push(`ISO ${meta.ISO}`);
+          if (meta.FocalLength) settingsParts.push(`${Math.round(meta.FocalLength)}mm`);
+          const date = formatDate(meta.DateTimeOriginal);
+          if (date) settingsParts.push(date);
+
+          const html = [];
+          if (gearParts.length) html.push(`<div class="meta-line meta-gear">${gearParts.join(' · ')}</div>`);
+          if (settingsParts.length) html.push(`<div class="meta-line">${settingsParts.join(' · ')}</div>`);
+
+          if (html.length) {
+            el.innerHTML = html.join('');
+            el.classList.add('visible');
+          }
+        }
+
+        async function loadExif(el) {
+          if (el.dataset.exifLoaded) return;
+          el.dataset.exifLoaded = 'true';
+          const src = el.dataset.exifSrc;
+          try {
+            const meta = await exifr.parse(src);
+            if (meta) render(el, meta);
+          } catch {
+            // No EXIF — skip
+          }
+        }
+
+        const observer = new IntersectionObserver(
+          (entries) => {
+            for (const entry of entries) {
+              if (entry.isIntersecting) {
+                observer.unobserve(entry.target);
+                loadExif(entry.target);
+              }
+            }
+          },
+          { rootMargin: '200px' }
+        );
+
+        blocks.forEach((el) => observer.observe(el));
+      })
+      .catch((e) => console.warn('EXIF library failed to load', e));
+  });
 </script>

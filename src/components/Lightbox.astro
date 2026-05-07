@@ -6,7 +6,7 @@ interface Props {
 const { images } = Astro.props;
 ---
 
-<div class="lightbox" id="lightbox" aria-hidden="true">
+<div class="lightbox" id="lightbox" data-images={JSON.stringify(images)} aria-hidden="true">
   <div class="lb-progress" id="lb-progress"></div>
 
   <button class="lb-close" id="lb-close" aria-label="Close">
@@ -55,159 +55,191 @@ const { images } = Astro.props;
   <div class="lb-toast" id="lb-toast"></div>
 </div>
 
-<script define:vars={{ images }}>
-  const lightbox = document.getElementById('lightbox');
-  const lbImage = document.getElementById('lb-image');
-  const lbCounter = document.getElementById('lb-counter');
-  const lbClose = document.getElementById('lb-close');
-  const lbPrev = document.getElementById('lb-prev');
-  const lbNext = document.getElementById('lb-next');
-  const lbSlideshow = document.getElementById('lb-slideshow');
-  const lbShare = document.getElementById('lb-share');
-  const lbToast = document.getElementById('lb-toast');
-  const lbProgress = document.getElementById('lb-progress');
-  const playIcon = lbSlideshow.querySelector('.play-icon');
-  const pauseIcon = lbSlideshow.querySelector('.pause-icon');
+<script>
+  function setupLightbox() {
+    const lightbox = document.getElementById('lightbox');
+    if (!lightbox) return;
 
-  const SLIDESHOW_INTERVAL = 8000;
-  let currentIndex = 0;
-  let slideshowTimer = null;
-  let isPlaying = false;
-  let toastTimer = null;
+    const images = JSON.parse(lightbox.dataset.images || '[]');
+    if (images.length === 0) return;
 
-  function setImageWithFade(src) {
-    lbImage.style.opacity = '0';
-
-    setTimeout(() => {
-      let shown = false;
-      const showImage = () => {
-        if (shown) return;
-        shown = true;
-        lbImage.style.opacity = '1';
-      };
-
-      lbImage.onload = showImage;
-      lbImage.src = src;
-      if (lbImage.complete) showImage();
-    }, 250);
-  }
-
-  function show(index, updateHash = true) {
-    currentIndex = index;
-    setImageWithFade(images[index]);
-    lbCounter.textContent = (index + 1) + ' / ' + images.length;
-    lightbox.classList.add('active');
-    lightbox.setAttribute('aria-hidden', 'false');
-    document.body.style.overflow = 'hidden';
-    if (updateHash) {
-      history.replaceState(null, '', '#image=' + (index + 1));
-    }
-    if (isPlaying) startProgress();
-    else stopProgress();
-  }
-
-  function close() {
-    stopSlideshow();
-    lightbox.classList.remove('active');
-    lightbox.setAttribute('aria-hidden', 'true');
+    // Reset leftover state from previous pages
     document.body.style.overflow = '';
-    history.replaceState(null, '', window.location.pathname);
-  }
-
-  function next(fromUser = true) {
-    if (fromUser) stopSlideshow();
-    show((currentIndex + 1) % images.length);
-  }
-
-  function prev() {
-    stopSlideshow();
-    show((currentIndex - 1 + images.length) % images.length);
-  }
-
-  function startSlideshow() {
-    isPlaying = true;
-    playIcon.style.display = 'none';
-    pauseIcon.style.display = '';
-    startProgress();
-    slideshowTimer = setInterval(() => next(false), SLIDESHOW_INTERVAL);
-  }
-
-  function stopSlideshow() {
-    if (slideshowTimer) {
-      clearInterval(slideshowTimer);
-      slideshowTimer = null;
+    if (window.__lightboxKeydownHandler) {
+      document.removeEventListener('keydown', window.__lightboxKeydownHandler);
     }
-    isPlaying = false;
-    playIcon.style.display = '';
-    pauseIcon.style.display = 'none';
-    stopProgress();
-  }
 
-  function toggleSlideshow() {
-    if (isPlaying) stopSlideshow();
-    else startSlideshow();
-  }
+    const lbImage = document.getElementById('lb-image');
+    const lbCounter = document.getElementById('lb-counter');
+    const lbClose = document.getElementById('lb-close');
+    const lbPrev = document.getElementById('lb-prev');
+    const lbNext = document.getElementById('lb-next');
+    const lbSlideshow = document.getElementById('lb-slideshow');
+    const lbShare = document.getElementById('lb-share');
+    const lbToast = document.getElementById('lb-toast');
+    const lbProgress = document.getElementById('lb-progress');
+    const playIcon = lbSlideshow.querySelector('.play-icon');
+    const pauseIcon = lbSlideshow.querySelector('.pause-icon');
 
-  function startProgress() {
-    lbProgress.classList.remove('running');
-    void lbProgress.offsetWidth;
-    lbProgress.classList.add('running');
-  }
+    const SLIDESHOW_INTERVAL = 8000;
+    const SWIPE_THRESHOLD = 50;
+    let currentIndex = 0;
+    let slideshowTimer = null;
+    let isPlaying = false;
+    let toastTimer = null;
+    let touchStartX = 0;
+    let touchStartY = 0;
 
-  function stopProgress() {
-    lbProgress.classList.remove('running');
-  }
+    function setImageWithFade(src) {
+      lbImage.style.opacity = '0';
+      setTimeout(() => {
+        let shown = false;
+        const showImage = () => {
+          if (shown) return;
+          shown = true;
+          lbImage.style.opacity = '1';
+        };
+        lbImage.onload = showImage;
+        lbImage.src = src;
+        if (lbImage.complete) showImage();
+      }, 250);
+    }
 
-  function showToast(text) {
-    lbToast.textContent = text;
-    lbToast.classList.add('visible');
-    if (toastTimer) clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => lbToast.classList.remove('visible'), 1800);
-  }
+    function show(index, updateHash = true) {
+      currentIndex = index;
+      setImageWithFade(images[index]);
+      lbCounter.textContent = (index + 1) + ' / ' + images.length;
+      lightbox.classList.add('active');
+      lightbox.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+      if (updateHash) {
+        history.replaceState(null, '', '#image=' + (index + 1));
+      }
+      if (isPlaying) startProgress();
+      else stopProgress();
+    }
 
-  async function shareCurrentImage() {
-    const url = window.location.href;
-    if (navigator.share) {
-      try { await navigator.share({ url }); } catch {}
-    } else {
-      try {
-        await navigator.clipboard.writeText(url);
-        showToast('Link copied');
-      } catch {
-        showToast('Copy failed');
+    function close() {
+      stopSlideshow();
+      lightbox.classList.remove('active');
+      lightbox.setAttribute('aria-hidden', 'true');
+      document.body.style.overflow = '';
+      history.replaceState(null, '', window.location.pathname);
+    }
+
+    function next(fromUser = true) {
+      if (fromUser) stopSlideshow();
+      show((currentIndex + 1) % images.length);
+    }
+
+    function prev() {
+      stopSlideshow();
+      show((currentIndex - 1 + images.length) % images.length);
+    }
+
+    function startSlideshow() {
+      isPlaying = true;
+      playIcon.style.display = 'none';
+      pauseIcon.style.display = '';
+      startProgress();
+      slideshowTimer = setInterval(() => next(false), SLIDESHOW_INTERVAL);
+    }
+
+    function stopSlideshow() {
+      if (slideshowTimer) {
+        clearInterval(slideshowTimer);
+        slideshowTimer = null;
+      }
+      isPlaying = false;
+      playIcon.style.display = '';
+      pauseIcon.style.display = 'none';
+      stopProgress();
+    }
+
+    function toggleSlideshow() {
+      if (isPlaying) stopSlideshow();
+      else startSlideshow();
+    }
+
+    function startProgress() {
+      lbProgress.classList.remove('running');
+      void lbProgress.offsetWidth;
+      lbProgress.classList.add('running');
+    }
+
+    function stopProgress() {
+      lbProgress.classList.remove('running');
+    }
+
+    function showToast(text) {
+      lbToast.textContent = text;
+      lbToast.classList.add('visible');
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => lbToast.classList.remove('visible'), 1800);
+    }
+
+    async function shareCurrentImage() {
+      const url = window.location.href;
+      if (navigator.share) {
+        try { await navigator.share({ url }); } catch {}
+      } else {
+        try {
+          await navigator.clipboard.writeText(url);
+          showToast('Link copied');
+        } catch {
+          showToast('Copy failed');
+        }
       }
     }
-  }
 
-  document.querySelectorAll('[data-lightbox-trigger]').forEach((el, idx) => {
-    el.addEventListener('click', (e) => {
-      e.preventDefault();
-      show(idx);
+    document.querySelectorAll('[data-lightbox-trigger]').forEach((el, idx) => {
+      el.addEventListener('click', (e) => {
+        e.preventDefault();
+        show(idx);
+      });
     });
-  });
 
-  lbClose.addEventListener('click', close);
-  lbPrev.addEventListener('click', prev);
-  lbNext.addEventListener('click', () => next(true));
-  lbSlideshow.addEventListener('click', toggleSlideshow);
-  lbShare.addEventListener('click', shareCurrentImage);
+    lbClose.addEventListener('click', close);
+    lbPrev.addEventListener('click', prev);
+    lbNext.addEventListener('click', () => next(true));
+    lbSlideshow.addEventListener('click', toggleSlideshow);
+    lbShare.addEventListener('click', shareCurrentImage);
 
-  lightbox.addEventListener('click', (e) => {
-    if (e.target === lightbox) close();
-  });
+    lightbox.addEventListener('click', (e) => {
+      if (e.target === lightbox) close();
+    });
 
-  document.addEventListener('keydown', (e) => {
-    if (!lightbox.classList.contains('active')) return;
-    if (e.key === 'Escape') close();
-    if (e.key === 'ArrowLeft') prev();
-    if (e.key === 'ArrowRight') next(true);
-    if (e.key === ' ') {
-      e.preventDefault();
-      toggleSlideshow();
-    }
-  });
+    lightbox.addEventListener('touchstart', (e) => {
+      if (!lightbox.classList.contains('active')) return;
+      const t = e.changedTouches[0];
+      touchStartX = t.screenX;
+      touchStartY = t.screenY;
+    }, { passive: true });
 
-  function checkInitialHash() {
+    lightbox.addEventListener('touchend', (e) => {
+      if (!lightbox.classList.contains('active')) return;
+      const t = e.changedTouches[0];
+      const diffX = t.screenX - touchStartX;
+      const diffY = t.screenY - touchStartY;
+      if (Math.abs(diffX) > SWIPE_THRESHOLD && Math.abs(diffX) > Math.abs(diffY)) {
+        if (diffX > 0) prev();
+        else next(true);
+      }
+    }, { passive: true });
+
+    const keydownHandler = (e) => {
+      if (!lightbox.classList.contains('active')) return;
+      if (e.key === 'Escape') close();
+      if (e.key === 'ArrowLeft') prev();
+      if (e.key === 'ArrowRight') next(true);
+      if (e.key === ' ') {
+        e.preventDefault();
+        toggleSlideshow();
+      }
+    };
+    window.__lightboxKeydownHandler = keydownHandler;
+    document.addEventListener('keydown', keydownHandler);
+
     const match = window.location.hash.match(/^#image=(\d+)$/);
     if (match) {
       const n = parseInt(match[1], 10);
@@ -217,7 +249,7 @@ const { images } = Astro.props;
     }
   }
 
-  checkInitialHash();
+  document.addEventListener('astro:page-load', setupLightbox);
 </script>
 
 <style>
